@@ -9,6 +9,10 @@ CONTENT_CASES = [
 ]
 
 
+class TestProject:
+    def test_create(self):
+        p = indirect.Project()
+
 class TestContent:
 
     @pytest.mark.skip(reason="Superseeded")
@@ -25,3 +29,9 @@ class TestContent:
     # @pytest.mark.parametrize("dumped", DUMPED_CASES)
     def test_decode(self, dumped):
         json.loads(dumped, object_hook=indirect.ProjectDecoder())
+
+
+class TestAbstraction:
+    def test_add_abstraction(self):
+        p = indirect.Project()
+        p.add_abstraction("x")

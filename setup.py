@@ -15,7 +15,7 @@ for category, fname in requirements_map.items():
         requirements[category] = fp.read().strip().split("\n")
 
 setup(
-    name = "indirect",
+    name="indirect",
     version="0.0.0",
     keywords=["Project Management", "Workflow Optimisation"],
     scripts=["indirect/indirect.py"],
