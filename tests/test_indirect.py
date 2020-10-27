@@ -13,6 +13,7 @@ class TestProject:
     def test_create(self):
         p = indirect.Project()
 
+
 class TestContent:
 
     @pytest.mark.skip(reason="Superseeded")
