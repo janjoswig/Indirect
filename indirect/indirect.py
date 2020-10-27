@@ -2,17 +2,19 @@ from dataclasses import dataclass
 import json
 import os.path
 import pathlib
-from typing import Type, Union
+from typing import Optional, Type, Union
 from weakref import proxy
 
 
 class ProjectEncoder(json.JSONEncoder):
+    """Make project parts serialisable on save"""
+
     def default(self, obj):
         if isinstance(obj, Content):
             serialisable = {
                 "alias": obj.alias,
                 "filename": obj.filename,
-                "cpath": obj.cpath,
+                "cpath": f"{obj.cpath!s}",
                 "keyp": obj.keyp,
                 "source": obj.source,
                 "exists": obj.exists,
@@ -32,7 +34,7 @@ class ProjectEncoder(json.JSONEncoder):
                 }
             return serialisable
 
-        return super().default(self, obj)
+        return super().default(obj)
 
 
 class ProjectDecoder:
@@ -51,17 +53,17 @@ class ProjectDecoder:
 
         if _type == "indirect.Content":
             decoded = Content(
-                dct["alias"],
-                dct["filename"],
-                dct["cpath"],
-                dct["keyp"],
-                dct["source"],
-                dct["exists"],
-                dct["desc"],
-                dct["kind"],
-                dct["tags"],
-                self._project,
-                dct["ingore_keyp"]
+                alias=dct["alias"],
+                filename=dct["filename"],
+                cpath=dct["cpath"],
+                keyp=dct["keyp"],
+                source=dct["source"],
+                exists=dct["exists"],
+                desc=dct["desc"],
+                kind=dct["kind"],
+                tags=dct["tags"],
+                project=self._project,
+                ignore_keyp=dct["ingore_keyp"]
                 )
             return decoded
 
@@ -291,17 +293,17 @@ class Project:
             assert isinstance(last_a, Abstraction)
 
             c = Content(
-                alias,
-                filename.format(*keyp),
-                cpath,
-                keyp,
-                source,
-                None,      # Implement existence check
-                desc,
-                kind,
-                tags,
-                proxy(self),
-                ignore_keyp
+                alias=alias,
+                filename=filename.format(*keyp),
+                cpath=cpath,
+                keyp=keyp,
+                source=source,
+                exists=None,      # Implement existence check
+                desc=desc,
+                kind=kind,
+                tags=tags,
+                project=proxy(self),
+                ignore_keyp=ignore_keyp
                 )
 
             if last_a.content is None:
@@ -400,20 +402,72 @@ class Project:
         return str_repr
 
 
-@dataclass
 class Content:
-    alias: str         # Name as stored in project
-    filename: str      # Actual name of the file
-    cpath: str         # Path snippet inserted between keyp and filename
-    keyp: list         # Key trajectory through Abstractions dict
-    source: str        # Root of the tree in which this file lies
-    exists: bool       # Existence indicator
-    desc: str          # String, description
-    kind: str          # Binary, txt? Used if filename has no extension
-    # _hash:           # Hash to track file modification
-    tags: list         # List of keyword identifiers
-    project: Type["Project"]    # Associated project
-    ignore_keyp: bool = False  # Do not consider keyp for fullpath
+    """
+    Args:
+        alias: Name as stored in project.
+        filename: Actual name of the file.
+        cpath: Path snippet inserted between keyp and filename.
+        keyp: Key trajectory through Abstractions dict.
+        source: Root of the tree in which this file lies.
+        exists: Existence indicator.
+        desc: Description.
+        kind: Binary, txt? Used if filename has no extension.
+        _hash: Hash to track file modification.
+        tags: List of keyword identifiers.
+        project: Associated project.
+        ignore_keyp Do not consider keyp for fullpath.
+    """
+    def __init__(
+            self, *,
+            alias: Optional[str] = None,
+            filename: Optional[str] = None,
+            cpath: Optional[str] = None,
+            keyp: Type["KeyPath"] = None,
+            source: Optional[str] = None,
+            exists: Optional[bool] = None,
+            desc: Optional[str] = None,
+            kind: Optional[str] = None,
+            # _hash:               ,
+            tags: Optional[list] = None,
+            project: Type["Project"] = None,
+            ignore_keyp: bool = False
+            ):
+
+        if alias is None:
+            alias = ""
+        self.alias = alias
+
+        if filename is None:
+            filename = ""
+        self.filename = filename
+
+        if cpath is None:
+            cpath = ""
+        self.cpath = pathlib.Path(cpath)
+
+        if keyp is None:
+            keyp = []
+        self.keyp = KeyPath(keyp)
+
+        if source is None:
+            source = "home"
+        self.source = source
+
+        self.exists = exists
+
+        if desc is None:
+            desc = ""
+        self.desc = desc
+
+        self.kind = kind
+
+        if tags is None:
+            tags = []
+        self.tags = tags
+
+        self.project = project
+        self.ignore_keyp = ignore_keyp
 
     @property
     def fullpath(self):
