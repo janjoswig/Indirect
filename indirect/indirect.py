@@ -6,7 +6,7 @@ from weakref import proxy
 
 
 class ProjectEncoder(json.JSONEncoder):
-    """Make project parts serialisable on save"""
+    """Make project parts serialisable on json dump"""
 
     def default(self, obj):
         if isinstance(obj, Content):
@@ -207,24 +207,36 @@ class View(list):
         return dct
 
 
+class Source(dict):
+    def __missing__(self, key):
+        if key == "home":
+            self[key] = pathlib.Path()
+            return self[key]
+        raise KeyError(key)
+
+
 class Project:
     def __init__(self, alias=None, /, *, file=None):
         self.abstractions = Abstraction("root")
-        # self.abstractions.next = {"": proxy(self.abstractions)}
-        self.a = self.abstractions
-
         self.views = {}
-        self.v = self.views
-
-        self.source = {
-            "home": str(pathlib.Path().absolute()),
-        }
-        self.s = self.source
+        self.source = Source()
 
         if file is not None:
             self.load(file)
 
         self.alias = alias
+
+    @property
+    def a(self):
+        return self.abstractions
+
+    @property
+    def v(self):
+        return self.views
+
+    @property
+    def s(self):
+        return self.source
 
     def load(self, file, reinit=False):
         """Load project from file"""
