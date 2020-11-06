@@ -12,7 +12,7 @@ CONTENT_CASES = [
 
 class TestProject:
     def test_create(self):
-        p = indirect.Project()
+        _ = indirect.Project()
 
 
 class TestContent:

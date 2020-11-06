@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import json
 import os.path
 import pathlib
@@ -7,7 +6,7 @@ from weakref import proxy
 
 
 class ProjectEncoder(json.JSONEncoder):
-    """Make project parts serialisable on save"""
+    """Make project parts serialisable on json dump"""
 
     def default(self, obj):
         if isinstance(obj, Content):
@@ -25,6 +24,9 @@ class ProjectEncoder(json.JSONEncoder):
                 "_type": "indirect.Content"
                 }
             return serialisable
+
+        if isinstance(obj, pathlib.Path):
+            return f"{obj!s}"
 
         if isinstance(obj, Abstraction):
             serialisable = {
@@ -73,9 +75,13 @@ class ProjectDecoder:
 class Abstraction:
     __slots__ = ["alias", "path", "previous", "next", "content", '__weakref__']
 
-    def __init__(self, alias, path):
+    def __init__(self, alias=None, /, *, path=None):
         self.alias = alias
-        self.path = path
+
+        if path is None:
+            path = ""
+        self.path = pathlib.Path(path)
+
         self.previous = None
         self.next = None
         self.content = None
@@ -85,10 +91,10 @@ class Abstraction:
         n_content = len(self.content) if self.content is not None else None
         str_repr = (
             f"{type(self).__name__}\n"
-            f"    alias:    {self.alias}\n"
-            f"    path:     {self.path}\n"
-            f"    next:     {n_next}\n"
-            f"    content:  {n_content}"
+            f"    alias:    {self.alias!r}\n"
+            f"    path:     {str(self.path)!r}\n"
+            f"    next:     {n_next!r}\n"
+            f"    content:  {n_content!r}"
         )
         return str_repr
 
@@ -108,6 +114,41 @@ class Abstraction:
             "content": content_str_reprs
             }
         return str(obj_repr)
+
+    def to_dict(self, depth=None):
+        def make_dct(dct, a, depth, current_depth=0):
+            dct[a.alias] = {
+                "path": a.path,
+                }
+
+            if hasattr(a, "content") and (a.content is not None):
+                dct[a.alias]["content"] = a.content
+
+            if depth is None or depth > current_depth:
+                if hasattr(a, "next"):
+                    if (a.next is None) or (len(a.next) == 0):
+                        return
+
+                    dct[a.alias]["next"] = {}
+                    for a_ in a.next.values():
+                        make_dct(
+                            dct[a.alias]["next"], a_,
+                            depth, current_depth=current_depth + 1
+                            )
+
+        dct = {}
+        make_dct(dct, self, depth)
+
+        return dct
+
+    @property
+    def fullpath(self):
+        def retrace(a):
+            if a.previous is not None:
+                yield from retrace(a.previous)
+            yield os.path.expandvars(a.path)
+
+        return pathlib.Path(*retrace(self))
 
 
 class KeyPath(list):
@@ -166,61 +207,69 @@ class View(list):
         return dct
 
 
+class Source(dict):
+    def __missing__(self, key):
+        if key == "home":
+            self[key] = pathlib.Path()
+            return self[key]
+        raise KeyError(key)
+
+
 class Project:
-    def __init__(self, alias=None, file=None):
-        self.alias = alias
-        self.file = file
-
-        self.abstractions = Abstraction("", "")
-        # self.abstractions.next = {"": proxy(self.abstractions)}
-        self.a = self.abstractions
-
+    def __init__(self, alias=None, /, *, file=None):
+        self.abstractions = Abstraction("root")
         self.views = {}
-        self.v = self.views
-
-        self.source = {
-            "home": str(pathlib.Path().absolute()),
-        }
+        self.source = Source()
 
         if file is None:
             self.file = file
         else:
             self.load(file)
 
-    def load(self, file=None, reinit=False):
+        self.alias = alias
+
+    @property
+    def a(self):
+        return self.abstractions
+
+    @property
+    def v(self):
+        return self.views
+
+    @property
+    def s(self):
+        return self.source
+
+    def load(self, file, reinit=False):
         """Load project from file"""
         if reinit:
             self.__init__()
 
-        self._set_project_file(file)
+        file = pathlib.Path(file)
 
-        with open(file) as file_:
+        with open(os.path.expandvars(file)) as file_:
             details = json.load(file_, object_hook=ProjectDecoder())
-            self.abstractions.update(details["abstractions"])
+            # self.abstractions.update(details["abstractions"])
             self.source.update(details["source"])
             self.views.update(details["views"])
 
-    def save(self):
-        pass
+        self.file = file
+        self.source["home"] = self.file.parent
 
-    def _set_project_file(self, file):
-        """Manage project file path"""
-        if file is None:
-            if self.file is not None:
-                file = self.file
-            else:
-                file = pathlib.Path(
-                    os.path.expandvars(self.source["home"])
-                    ) / 'project.json'
-        else:
-            file = pathlib.Path(os.path.expandvars(file))
+    def save(self, file):
+        file = pathlib.Path(file)
 
-        file = file.absolute()
+        save_obj = {
+            "source": self.source,
+            "views": self.views,
+            "abstractions": self.abstractions.to_dict()
+        }
+
+        with open(os.path.expandvars(file), "w") as fp:
+            json.dump(save_obj, fp, indent=4, cls=ProjectEncoder)
 
         self.file = file
-        self.source = {
-            "home": f"{file.parent}"
-            }
+        self.source["home"] = self.file.parent
 
     def add_abstraction(self, alias, *, path=None, view=None):
         """Add abstraction to abstractions
@@ -247,7 +296,7 @@ class Project:
             last_a = self.decent_keyp(keyp)
             assert isinstance(last_a, Abstraction)
 
-            a = Abstraction(alias, path)
+            a = Abstraction(alias, path=path)
             a.previous = proxy(last_a)
 
             if last_a.next is None:
@@ -295,7 +344,7 @@ class Project:
             assert isinstance(last_a, Abstraction)
 
             c = Content(
-                alias=alias,
+                alias,
                 filename=filename.format(*keyp),
                 cpath=cpath,
                 keyp=keyp,
@@ -421,8 +470,7 @@ class Content:
         ignore_keyp Do not consider keyp for fullpath.
     """
     def __init__(
-            self, *,
-            alias: Optional[str] = None,
+            self, alias: Optional[str] = None, /, *,
             filename: Optional[str] = None,
             cpath: Optional[str] = None,
             keyp: Type["KeyPath"] = None,
@@ -516,7 +564,7 @@ class Content:
             f"{type(self).__name__}\n"
             f"    alias:        {self.alias!r}\n"
             f"    filename:     {self.filename!r}\n"
-            f"    cpath:        {self.cpath!r}\n"
+            f"    cpath:        {str(self.cpath)!r}\n"
             f"    keyp:         {self.keyp!r}\n"
             f"    source:       {self.source!r}\n"
             f"    exists:       {self.exists!r}\n"
