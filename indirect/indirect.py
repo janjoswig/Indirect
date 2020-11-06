@@ -182,7 +182,9 @@ class Project:
             "home": str(pathlib.Path().absolute()),
         }
 
-        if file is not None:
+        if file is None:
+            self.file = file
+        else:
             self.load(file)
 
     def load(self, file=None, reinit=False):
@@ -325,7 +327,7 @@ class Project:
             _ = last_a.content.pop(alias)
 
     def decent_keyp(
-            self, keyp: Type[KeyPath]
+            self, keyp: Type["KeyPath"]
             ) -> Union[Type["Abstraction"], Type["Content"]]:
         a = self.abstractions
         for key in keyp:
