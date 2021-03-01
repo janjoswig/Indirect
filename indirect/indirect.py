@@ -470,7 +470,8 @@ class Content:
         ignore_keyp Do not consider keyp for fullpath.
     """
     def __init__(
-            self, alias: Optional[str] = None, /, *,
+            self,
+            alias: Optional[str] = None, /, *,
             filename: Optional[str] = None,
             cpath: Optional[str] = None,
             keyp: Type["KeyPath"] = None,

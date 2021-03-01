@@ -6,11 +6,11 @@ from typing import Container, Iterator, Optional, Union
 def get_dirs(
         path: Union[str, pathlib.Path] = '', *,
         prefix: str = '',
-        regex: str = '*',
+        regex: str = '.*',
         suffix: str = '',
         exclude: Optional[Container[str]] = None) -> Iterator[str]:
     """Find all directories matching a pattern
-    
+
     Args:
         path: Look for directories under this location.
         prefix: Directory names must start with this prefix.

@@ -16,7 +16,7 @@ for category, fname in requirements_map.items():
 
 setup(
     name="indirect",
-    version="0.0.0",
+    version="0.0.1",
     keywords=["Project Management", "Workflow Optimisation"],
     scripts=["indirect/indirect.py"],
     author="Jan-Oliver Joswig",

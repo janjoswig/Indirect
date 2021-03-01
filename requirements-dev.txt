@@ -1,4 +1,5 @@
+anybadge
+coverage
 pytest
-pytest-cov
 pytest-raises
 pytest-regressions
