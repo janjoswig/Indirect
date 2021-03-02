@@ -12,6 +12,11 @@ from indirect import cookbook
             "regex": "d[0-9]*$"
             }, ["d1", "d2", "d3"]),
         ((), {
+            "prefix": "d",
+            "path": "tests/test_cookbook",
+            "regex": "[0-9]*$"
+            }, ["1", "2", "3"]),
+        ((), {
             "path": "tests/test_cookbook",
             "regex": "d[0-9]*$",
             "exclude": {"d2"},

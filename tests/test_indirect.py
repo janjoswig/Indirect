@@ -6,48 +6,34 @@ from indirect import indirect
 
 
 CONTENT_CASES = [
-    ("no", {}),
-    ("a", {
-        "alias": "alias", "filename": "file.ext"
+    ("no", (), {}),
+    ("a", ("alias", ), {
+        "filename": "file.ext"
     }),
 ]
 
 ABSTRACTION_CASES = [
-    ("no", {}),
-    ("a", {
-        "alias": "system", "path": "system/setup"
+    ("no", (), {}),
+    ("a", ("system", ), {
+        "path": "system/setup"
     })
 ]
 
 
 class TestProject:
 
-    @pytest.mark.parametrize("caseid,kwargs", ABSTRACTION_CASES)
-    def test_add_abstraction(self, caseid, kwargs):
-        try:
-            alias = kwargs.pop("alias")
-        except KeyError:
-            alias = None
+    def test_add_abstraction(self):
 
         p = indirect.Project()
-        p.add_abstraction("x")
+        p.add_abstraction("s1")
 
 
 class TestContent:
 
-    @pytest.mark.skip(reason="Superseeded")
-    @pytest.mark.parametrize("caseid,kwargs", CONTENT_CASES)
-    def test_create(self, caseid, kwargs):
-        _ = indirect.Content(**kwargs)
+    @pytest.mark.parametrize("caseid,args,kwargs", CONTENT_CASES)
+    def test_encode(self, caseid, args, kwargs, data_regression):
 
-    @pytest.mark.parametrize("caseid,kwargs", CONTENT_CASES)
-    def test_encode(self, caseid, kwargs, data_regression):
-        try:
-            alias = kwargs.pop("alias")
-        except KeyError:
-            alias = None
-
-        content = indirect.Content(alias, **kwargs)
+        content = indirect.Content(*args, **kwargs)
 
         data_regression.check(
             json.dumps(
@@ -68,14 +54,9 @@ class TestContent:
 
 class TestAbstraction:
 
-    @pytest.mark.parametrize("caseid,kwargs", ABSTRACTION_CASES)
-    def test_create_abstraction(self, caseid, kwargs, file_regression):
-        try:
-            alias = kwargs.pop("alias")
-        except KeyError:
-            alias = None
-
-        abstraction = indirect.Abstraction(alias, **kwargs)
+    @pytest.mark.parametrize("caseid,args,kwargs", ABSTRACTION_CASES)
+    def test_create_abstraction(self, caseid, args, kwargs, file_regression):
+        abstraction = indirect.Abstraction(*args, **kwargs)
 
         basename = f"{inspect.stack()[0][3]}_{caseid}"
 
@@ -85,3 +66,7 @@ class TestAbstraction:
         file_regression.check(
             f"{abstraction!r}", basename=f"{basename}_repr"
             )
+
+    def test_to_dict(self):
+        abstraction = indirect.Abstraction("s1")
+        print(abstraction.to_dict())

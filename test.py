@@ -37,7 +37,7 @@ class TotalCoverageParser(HTMLParser):
 if __name__ == "__main__":
 
     test_command_list = [
-        f"coverage run -m pytest {' '.join(sys.argv[1:])}",
+        f"coverage run -m pytest --doctest-glob='*.md' {' '.join(sys.argv[1:])}",
         "coverage html"
         ]
 

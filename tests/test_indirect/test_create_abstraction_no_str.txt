@@ -1,5 +1,5 @@
 Abstraction
-    alias:    None
+    alias:    ''
     path:     '.'
     next:     None
     content:  None

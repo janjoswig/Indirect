@@ -1,5 +1,5 @@
 Abstraction
-    alias:    None
+    alias:    'system'
     path:     'system/setup'
     next:     None
     content:  None

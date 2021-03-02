@@ -1,1 +1,1 @@
-{'alias': None, 'path': PosixPath('.'), 'next': None, 'content': None}
+{'alias': '', 'path': PosixPath('.'), 'next': None, 'content': None}

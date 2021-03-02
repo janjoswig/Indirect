@@ -1,1 +1,1 @@
-{'alias': None, 'path': PosixPath('system/setup'), 'next': None, 'content': None}
+{'alias': 'system', 'path': PosixPath('system/setup'), 'next': None, 'content': None}

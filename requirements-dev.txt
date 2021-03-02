@@ -1,5 +1,6 @@
 anybadge
 coverage
+jupyter
 pytest
 pytest-raises
 pytest-regressions

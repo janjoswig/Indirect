@@ -76,6 +76,8 @@ class Abstraction:
     __slots__ = ["alias", "path", "previous", "next", "content", '__weakref__']
 
     def __init__(self, alias=None, /, *, path=None):
+        if alias is None:
+            alias = ""
         self.alias = alias
 
         if path is None:
@@ -208,10 +210,15 @@ class View(list):
 
 
 class Source(dict):
+
+    def __setitem__(self, key: str, value: Union[str, pathlib.Path]) -> None:
+        if isinstance(value, str):
+            value = pathlib.Path(value)
+        return super().__setitem__(key, value)
+
     def __missing__(self, key):
         if key == "home":
-            self[key] = pathlib.Path()
-            return self[key]
+            return pathlib.Path()
         raise KeyError(key)
 
 
