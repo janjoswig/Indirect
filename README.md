@@ -54,7 +54,7 @@ layer to manage these files.
 Project(alias='example', file=None)
 
 >>> # ... set the "example" directory as a root point ...
->>> project.source["main"] = "example"
+>>> project.sources["main"] = "example"
 
 >>> # ... add new abstractions representing our systems ...
 >>> project.add_abstraction(
@@ -64,8 +64,8 @@ Project(alias='example', file=None)
 ...    "b", path="system_two_with_an_even_more_complicated_name"
 ...    )
 
->>> # ... look for experiments under the system directories ... 
->>> path = project.source["main"] / project["a"].fullpath
+>>> # ... look for experiments under the system directories ...
+>>> path = project.sources["main"] / project["a"].fullpath
 >>> exp_dirs = cookbook.get_dirs(path=path, regex="^exp")
 >>> for directory in exp_dirs:
 ...     rep_dirs = cookbook.get_dirs(path=path / directory, regex="^replica")
@@ -74,7 +74,7 @@ Project(alias='example', file=None)
 ...             f"{number}", path=f"{directory}/{sub_directory}", view=["a"]
 ...             )
 
->>> path = project.source["main"] / project["b"].fullpath
+>>> path = project.sources["main"] / project["b"].fullpath
 >>> rep_dirs = cookbook.get_dirs(path=path, regex="^rep")
 >>> for number, directory in enumerate(rep_dirs, 1):
 ...     project.add_abstraction(

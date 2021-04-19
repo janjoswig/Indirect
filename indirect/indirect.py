@@ -1,7 +1,8 @@
+from collections.abc import MutableMapping
 import json
 import os.path
 import pathlib
-from typing import Optional, Type, Union
+from typing import Any, Optional, Type, Union
 from weakref import proxy
 
 
@@ -117,6 +118,15 @@ class Abstraction:
             }
         return str(obj_repr)
 
+    def __contains__(self, alias):
+        if (self.next is not None) and (alias in self.next):
+            return True
+
+        if (self.content is not None) and (alias in self.content):
+            return True
+
+        return False
+
     def to_dict(self, depth=None):
         def make_dct(dct, a, depth, current_depth=0):
             dct[a.alias] = {
@@ -209,24 +219,66 @@ class View(list):
         return dct
 
 
-class Source(dict):
+class Sources(MutableMapping):
+
+    def __init__(self) -> None:
+        self._sources = {}
+
+    def __getitem__(self, key: str):
+        try:
+            return self._sources[key]
+        except KeyError as error:
+            if key == "home":
+                return pathlib.Path()
+            raise error
 
     def __setitem__(self, key: str, value: Union[str, pathlib.Path]) -> None:
         if isinstance(value, str):
             value = pathlib.Path(value)
-        return super().__setitem__(key, value)
+        self._sources[key] = value
 
-    def __missing__(self, key):
-        if key == "home":
-            return pathlib.Path()
-        raise KeyError(key)
+    def __delitem__(self, key: str) -> None:
+        del self._sources[key]
+
+    def __iter__(self):
+        return iter(self._sources)
+
+    def __len__(self):
+        return len(self._sources)
+
+    def __repr__(self):
+        return f"{type(self).__name__}({self._sources})"
+
+
+class Views(MutableMapping):
+
+    def __init__(self) -> None:
+        self._views = {}
+
+    def __getitem__(self, key: str):
+        return self._views[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self._views[key] = View(value)
+
+    def __delitem__(self, key: str) -> None:
+        del self._views[key]
+
+    def __iter__(self):
+        return iter(self._views)
+
+    def __len__(self):
+        return len(self._views)
+
+    def __repr__(self):
+        return f"{type(self).__name__}({self._views})"
 
 
 class Project:
     def __init__(self, alias=None, /, *, file=None):
         self.abstractions = Abstraction("root")
-        self.views = {}
-        self.source = Source()
+        self.views = Views()
+        self.sources = Sources()
 
         if file is None:
             self.file = file
@@ -245,7 +297,7 @@ class Project:
 
     @property
     def s(self):
-        return self.source
+        return self.sources
 
     def load(self, file, reinit=False):
         """Load project from file"""
@@ -257,17 +309,17 @@ class Project:
         with open(os.path.expandvars(file)) as file_:
             details = json.load(file_, object_hook=ProjectDecoder())
             # self.abstractions.update(details["abstractions"])
-            self.source.update(details["source"])
+            self.sources.update(details["sources"])
             self.views.update(details["views"])
 
         self.file = file
-        self.source["home"] = self.file.parent
+        self.sources["home"] = self.file.parent
 
     def save(self, file):
         file = pathlib.Path(file)
 
         save_obj = {
-            "source": self.source,
+            "sources": self.sources,
             "views": self.views,
             "abstractions": self.abstractions.to_dict()
         }
@@ -276,7 +328,7 @@ class Project:
             json.dump(save_obj, fp, indent=4, cls=ProjectEncoder)
 
         self.file = file
-        self.source["home"] = self.file.parent
+        self.sources["home"] = self.file.parent
 
     def add_abstraction(self, alias, *, path=None, view=None):
         """Add abstraction to abstractions
@@ -541,7 +593,7 @@ class Content:
                 keyp_eval = ""
 
             fullpath_ = pathlib.Path(
-                f"{os.path.expandvars(self.project.source[self.source])}/"
+                f"{os.path.expandvars(self.project.sources[self.source])}/"
                 f"{keyp_eval}/"
                 f"{os.path.expandvars(self.cpath)}/"
                 f"{self.filename}"
