@@ -10,6 +10,10 @@ class ProjectEncoder(json.JSONEncoder):
     """Make project parts serialisable on json dump"""
 
     def default(self, obj):
+        if isinstance(obj, Sources):
+            serialisable = obj._sources
+            return serialisable
+
         if isinstance(obj, Content):
             serialisable = {
                 "alias": obj.alias,
