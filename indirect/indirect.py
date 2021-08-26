@@ -132,6 +132,26 @@ class Abstraction:
 
         return False
 
+    def __iadd__(self, other):
+
+        if isinstance(other, Abstraction):
+            if self.next is None:
+                self.next = {}
+            self.next[other.alias] = other
+
+        elif isinstance(other, Content):
+            if self.content is None:
+                self.content = {}
+            self.content[other.alias] = other
+
+        else:
+            raise TypeError(
+                "unsupported operand type(s) for +: "
+                f"'{type(self).__name__}' and '{type(other).__name__}'"
+                )
+
+        return self
+
     def to_dict(self, depth=None):
         def make_dct(dct, a, depth, current_depth=0):
             dct[a.alias] = {
