@@ -1,6 +1,9 @@
+import os
 import pathlib
 import re
 from typing import Container, Iterator, Optional, Union
+
+from . import indirect
 
 
 def get_dirs(
@@ -39,3 +42,52 @@ def get_dirs(
             continue
 
         yield a
+
+
+def list_content_paths(project, view):
+    view = project.check_view(view)
+
+    print(f"{'key':<20}path (exists?)")
+    print("=" * 100)
+
+    for keyp in view:
+        a = project[keyp]
+        if isinstance(a, indirect.Abstraction):
+            print(keyp.to_string())
+            for alias, content in a.content.items():
+
+                if not content.ignore_keyp:
+                    keyp_eval = project.eval_keyp(keyp)
+                else:
+                    keyp_eval = ""
+
+                fullpath_ = pathlib.Path(
+                    f"{content.source}:"
+                    f"{keyp_eval}/"
+                    f"{os.path.expandvars(content.cpath)}/"
+                    f"{content.filename}"
+                )
+
+                print(
+                    f"  .{alias:<18}{fullpath_} "
+                    f"({content.fullpath.is_file()})"
+                    )
+            print()
+
+        elif isinstance(a, indirect.Content):
+
+            if not a.ignore_keyp:
+                keyp_eval = project.eval_keyp(keyp)
+            else:
+                keyp_eval = ""
+
+            fullpath_ = pathlib.Path(
+                f"{a.source}:"
+                f"{keyp_eval}/"
+                f"{os.path.expandvars(a.cpath)}/"
+                f"{a.filename}"
+            )
+
+            print(
+                f"{keyp.to_string():<20}{fullpath_}"
+            )
