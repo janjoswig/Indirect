@@ -3,6 +3,7 @@ import json
 import os.path
 import pathlib
 from typing import Any, Optional, Type, Union
+import warnings
 from weakref import proxy
 
 
@@ -256,16 +257,16 @@ class Sources(MutableMapping):
 
 class Views(MutableMapping):
 
-    def __init__(self) -> None:
+    def __init__(self):
         self._views = {}
 
-    def __getitem__(self, key: str):
+    def __getitem__(self, key: str) -> Type["View"]:
         return self._views[key]
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key: str, value: Any):
         self._views[key] = View(value)
 
-    def __delitem__(self, key: str) -> None:
+    def __delitem__(self, key: str):
         del self._views[key]
 
     def __iter__(self):
@@ -483,17 +484,36 @@ class Project:
         if isinstance(keyp, str):
             keyp = KeyPath.from_string(keyp)
 
-        a = self.decent_keyp(keyp)
-        assert isinstance(a, Abstraction)
+        if len(keyp) == 0:
+            # Setting root
+            assert isinstance(item, Abstraction), "Root must be of type Abstraction"
+
+            self.abstractions = item
+            return
+
+        a = self.decent_keyp(keyp[:-1])
+        alias = keyp[-1]
 
         if isinstance(item, Content):
             if a.content is None:
                 a.content = {}
+
+            if alias != item.alias:
+                warnings.warn(
+                    f"Alias mismatch ({alias} != {item.alias})", UserWarning
+                    )
+
             a.content[item.alias] = item
 
         elif isinstance(item, Abstraction):
             if a.next is None:
                 a.next = {}
+
+            if alias != item.alias:
+                warnings.warn(
+                    f"Alias mismatch ({alias} != {item.alias})", UserWarning
+                    )
+
             a.next[item.alias] = item
 
         else:
