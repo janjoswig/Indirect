@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 with open("README.md", "r") as readme:
@@ -35,4 +35,5 @@ setup(
     extras_require={
         "dev": requirements["dev"],
         },
+    packages=find_packages()
 )
